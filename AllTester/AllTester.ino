@@ -1,4 +1,3 @@
-#include <rgb_lcd.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Wire.h>
@@ -67,11 +66,8 @@ void loop() {
     delay(20);
     
     // Map the raw value (0.0 to 3.2V) to moisture percentage (0 to 100%)
-    moisture = map(moistureRaw * 100, 0, 354, 0, 100);
+    moisture = map(soilMoistureRaw * 100, 0, 178, 0, 100);
     lightValue = map(lightValue, 0, 800, 0, 100);
-    
-    // Get and display temperature
-    float tempF = 1.8 * sensors.getTempCByIndex(0) + 32.0;
 
     lcd.setCursor(0, 0);
     lcd.print("M: ");

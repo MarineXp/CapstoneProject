@@ -13,15 +13,13 @@ void setup() {
 void loop() {
 
   // Turn the solenoid valve ON for a set duration
-
   digitalWrite(solenoidPin, HIGH); 
   Serial.println("On");
   delay(1000); // Delay for 1 second
 
 
 
-  // Turn the solenoid valve OFF
-
+  // Turn the solenoid valve OFF for a set duration
   digitalWrite(solenoidPin, LOW); 
   Serial.println("Off");
   delay(1000); // Delay for 1 second
