@@ -1,34 +1,49 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(2, 3); // RX, TX
+SoftwareSerial ESPReceiver(2, 3); // RX, TX
+SoftwareSerial ESPTransmitter(4, 5); // RX, TX
 
 void setup() {
-  Serial.begin(19200);
-  mySerial.begin(9600);
+    Serial.begin(19200);
+    ESPReceiver.begin(4800);   // Lower baud rate for better reliability
+    ESPTransmitter.begin(4800);
 }
 
-void loop() {
-  if (Serial.available()) {
-    String userInput = Serial.readStringUntil('\n');
-    userInput.trim();
-    if (userInput.startsWith("USER:")) {
-      userInput = userInput.substring(5);
-      mySerial.println(userInput);
-      String output = "Sent " + userInput + " to mySerial";
-      Serial.println(output);
-      Serial.println("-------------------------------------");
-    }
-  }
+// Function to read data character by character
+// void readFromSoftwareSerial(SoftwareSerial &serial, String &output) {
+//     while (serial.available()) {
+//         char c = serial.read();
+//         output += c;
+//         delayMicroseconds(500); // Small delay to allow buffer processing
+//     }
+// }
 
-  if (mySerial.available()) {
-    String input = mySerial.readStringUntil('\n');
-    input.trim();
-    
-    if (input.startsWith("ESP")) {
-      Serial.println(input.substring(4));
-      Serial.println("-------------------------------------");
+void loop() {
+    if (Serial.available()) {
+        String userInput = Serial.readStringUntil('\n');
+        userInput.trim();
+        if (userInput.startsWith("USER:")) {
+            userInput = userInput.substring(5);
+            ESPTransmitter.listen();  // Ensure we are listening to the right serial
+            delay(5); // Allow time for switching
+            ESPTransmitter.println(userInput);
+            Serial.println("Sent to ESPTransmitter: " + userInput);
+            Serial.println("-------------------------------------");
+            delay(500);
+        }
     }
-  }
+
+    // Read from ESPReceiver
+    String receiverData = "";
+    ESPReceiver.listen();  // Ensure we are listening to ESPReceiver
+    delay(500);
+    //readFromSoftwareSerial(ESPReceiver, receiverData);
+    receiverData = ESPReceiver.readStringUntil('\n');
+    receiverData.trim();
+    if (receiverData.length() > 0 && receiverData.startsWith("ESP:")) {
+        Serial.println(receiverData);
+        Serial.println("-------------------------------------");
+    }
 }
 // #include <SoftwareSerial.h>
 
