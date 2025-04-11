@@ -1,5 +1,7 @@
 package com.SmartIrrigationSystemApp.ui;
 
+import com.SmartIrrigationSystemApp.styling.ThemeManager;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -7,6 +9,8 @@ public class SettingsScreen extends JFrame {
     public SettingsScreen(JFrame previous) {
         setTitle("Settings");
         setSize(300, 200);
+        ThemeManager.applyTheme(this); // Apply current theme
+        addThemeMenu(); // Toggle menu
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
@@ -42,7 +46,7 @@ public class SettingsScreen extends JFrame {
 
         add(Box.createVerticalStrut(10)); // spacing
         add(portLabel);
-        add(infoLabel); // 💡 here it is underneath the label
+        add(infoLabel); // here it is underneath the label
         add(Box.createVerticalStrut(5));
         add(portList);
         add(Box.createVerticalStrut(10));
@@ -53,4 +57,16 @@ public class SettingsScreen extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
     }
+
+    private void addThemeMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu themeMenu = new JMenu("Theme");
+        JMenuItem toggleItem = new JMenuItem("Toggle Light/Dark Mode");
+
+        toggleItem.addActionListener(e -> ThemeManager.toggleTheme(this));
+        themeMenu.add(toggleItem);
+        menuBar.add(themeMenu);
+        setJMenuBar(menuBar);
+    }
+
 }

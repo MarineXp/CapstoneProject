@@ -1,4 +1,4 @@
-const int soilTempPin = A5;
+const int soilTempPin = A4;
 float soilTemp = 0; //Scaled value of soil temp (degrees F)
 
 void setup() {
@@ -9,13 +9,20 @@ void setup() {
 
 void loop() {
   //Collect Variables
-  soilTemp = (133.94 * analogRead(soilTempPin) * (3.3 / 1024)) - 82;
+  // soilTemp = (133.94 * analogRead(soilTempPin) * (3.3 / 1024)) - 82;
+  // delay(1000);
+
+  // Serial.print("Soil Temp Raw: ");
+  // Serial.println(analogRead(soilTempPin));
+
+  // Serial.print("Soil Temp: ");
+  // Serial.println(soilTemp);
+
+  float voltage = analogRead(soilTempPin) * (3.3 / 1024);
+  Serial.print("Voltage: ");
+  Serial.println(voltage, 3);
+  float convTemp = (voltage * 75.006) - 40;
+  Serial.print("Temp Conversion: ");
+  Serial.println(convTemp);
   delay(1000);
-
-  Serial.print("Soil Temp Raw: ");
-  Serial.println(analogRead(soilTempPin));
-
-  Serial.print("Soil Temp: ");
-  Serial.println(soilTemp);
-
 }

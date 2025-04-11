@@ -1,9 +1,13 @@
 bool running = true; // Flag to control the loop
-float soilMoistureRaw = 0; //Raw analog input of soil moisture sensor (volts)
-float moisture = 0; //Scaled value of volumetric water content in soil (percent)
-float soilMoisture = 0;
+float soilMoistureRaw1 = 0; //Raw analog input of soil moisture sensor (volts)
+float moisture1 = 0; //Scaled value of volumetric water content in soil (percent)
+float soilMoisture1 = 0;
+float soilMoistureRaw2 = 0; //Raw analog input of soil moisture sensor (volts)
+float moisture2 = 0; //Scaled value of volumetric water content in soil (percent)
+float soilMoisture2 = 0;
 
-const int moisturePin = A5;
+const int moisturePin1 = A1;
+const int moisturePin2 = A3;
 
 void setup() {
   // Initialize serial connection
@@ -41,18 +45,24 @@ void loop() {
   // If running flag is true, continue reading temperature
   if (running) {
     // Getting the raw value of the moisture pin (volts)
-    soilMoistureRaw = analogRead(moisturePin)*(3.3/1024);
+    soilMoistureRaw1 = analogRead(moisturePin1)*(3.3/1024);
+    soilMoistureRaw2 = analogRead(moisturePin2)*(3.3/1024);
     
-    Serial.print("Raw Moisture: ");
-    Serial.println(soilMoistureRaw);
+    Serial.print("Raw Moisture1: ");
+    Serial.println(soilMoistureRaw1);
+    Serial.print("Raw Moisture2: ");
+    Serial.println(soilMoistureRaw2);
     delay(20);
 
     // Map the raw value (0.0 to 3.2V) to moisture percentage (0 to 100%)
-    moisture = map(soilMoistureRaw * 100, 0, 178, 0, 100);
-    Serial.print("Moisture %: ");
-    Serial.println(moisture);
+    moisture1 = map(soilMoistureRaw1 * 100, 0, 178, 0, 100);
+    moisture2 = map(soilMoistureRaw2 * 100, 0, 178, 0, 100);
+    Serial.print("Moisture1 %: ");
+    Serial.println(moisture1);
+    Serial.print("Moisture2 %: ");
+    Serial.println(moisture2);
 
 
-    delay(500);
+    delay(1000);
   }
 }

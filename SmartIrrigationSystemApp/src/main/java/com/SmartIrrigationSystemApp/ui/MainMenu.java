@@ -1,5 +1,7 @@
 package com.SmartIrrigationSystemApp.ui;
 
+import com.SmartIrrigationSystemApp.styling.ThemeManager;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -7,11 +9,14 @@ public class MainMenu extends JFrame {
     public MainMenu() {
         setTitle("Main Menu");
         setSize(400, 300);
+        ThemeManager.applyTheme(this); // Apply current theme
+        addThemeMenu(); // Toggle menu
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Use vertical box layout
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setOpaque(false);
 
         // Title label
         JLabel titleLabel = new JLabel("Smart Irrigation System", SwingConstants.CENTER);
@@ -71,4 +76,16 @@ public class MainMenu extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(MainMenu::new);
     }
+
+    private void addThemeMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu themeMenu = new JMenu("Theme");
+        JMenuItem toggleItem = new JMenuItem("Toggle Light/Dark Mode");
+
+        toggleItem.addActionListener(e -> ThemeManager.toggleTheme(this));
+        themeMenu.add(toggleItem);
+        menuBar.add(themeMenu);
+        setJMenuBar(menuBar);
+    }
+
 }

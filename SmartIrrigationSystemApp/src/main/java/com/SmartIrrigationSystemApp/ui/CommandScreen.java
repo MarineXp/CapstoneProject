@@ -1,5 +1,7 @@
 package com.SmartIrrigationSystemApp.ui;
 
+import com.SmartIrrigationSystemApp.styling.ThemeManager;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.OutputStream;
@@ -14,6 +16,8 @@ public class CommandScreen extends JFrame {
     public CommandScreen(JFrame previous) {
         setTitle("Send Command");
         setSize(400, 250);
+        ThemeManager.applyTheme(this);
+        addThemeMenu();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -23,6 +27,7 @@ public class CommandScreen extends JFrame {
 
         JPanel commandListPanel = new JPanel();
         commandListPanel.setLayout(new BoxLayout(commandListPanel, BoxLayout.Y_AXIS));
+        commandListPanel.setOpaque(false);
 
         for (String cmd : availableCommands) {
             JLabel cmdLabel = new JLabel(cmd);
@@ -42,10 +47,12 @@ public class CommandScreen extends JFrame {
         // ===== Main content panel =====
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setOpaque(false);
 
         // ==== New Buttons ====
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new FlowLayout());
+        buttonPanel.setOpaque(false);
         JButton openValveBtn = new JButton("Open Valve");
         JButton closeValveBtn = new JButton("Close Valve");
 
@@ -112,4 +119,16 @@ public class CommandScreen extends JFrame {
             JOptionPane.showMessageDialog(this, "Serial port not open. Set it in settings first.");
         }
     }
+
+    private void addThemeMenu() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu themeMenu = new JMenu("Theme");
+        JMenuItem toggleItem = new JMenuItem("Toggle Light/Dark Mode");
+
+        toggleItem.addActionListener(e -> ThemeManager.toggleTheme(this));
+        themeMenu.add(toggleItem);
+        menuBar.add(themeMenu);
+        setJMenuBar(menuBar);
+    }
+
 }
