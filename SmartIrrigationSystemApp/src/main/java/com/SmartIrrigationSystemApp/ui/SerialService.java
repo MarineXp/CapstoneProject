@@ -1,3 +1,5 @@
+package com.SmartIrrigationSystemApp.ui;
+
 import com.fazecast.jSerialComm.SerialPort;
 
 import java.io.InputStream;
@@ -60,12 +62,20 @@ public class SerialService {
                                                 String line = bufferBuilder.substring(0, newlineIndex).trim();
                                                 bufferBuilder.delete(0, newlineIndex + 1);
 
-                                                if (onDataReceived != null) onDataReceived.accept(line + "\n");
+                                                // Filter: only process if line starts with "ACKM:"
+                                                if (line.startsWith("ACKM:")) {
+                                                    if (onDataReceived != null) onDataReceived.accept(line + "\n");
 
-                                                if (line.startsWith("MOIST1:")) {
-                                                    String moisture = line.substring(7).trim();
-                                                    latestMoisture = moisture;
-                                                    if (onMoistureUpdate != null) onMoistureUpdate.accept(moisture);
+                                                    // Handle embedded MOIST1 logic inside ACKM line
+                                                    if (line.contains("MOIST1:")) {
+                                                        String moisture = line.substring(line.indexOf("MOIST1:") + 7).trim();
+                                                        latestMoisture = moisture;
+                                                        if (onMoistureUpdate != null) onMoistureUpdate.accept(moisture);
+                                                    }
+                                                }
+
+                                                if (line.startsWith("ACKS:")) {
+                                                    if (onDataReceived != null) onDataReceived.accept(line + "\n");
                                                 }
                                             }
                                         }
@@ -111,5 +121,8 @@ public class SerialService {
                 .toArray(String[]::new);
     }
 
+    public SerialPort getSerialPort() {
+        return serialPort;
+    }
 }
 

@@ -1,3 +1,5 @@
+package com.SmartIrrigationSystemApp.ui;
+
 import javax.swing.*;
 import java.awt.*;
 
