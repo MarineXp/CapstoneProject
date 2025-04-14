@@ -10,7 +10,7 @@ public class CommandScreen extends JFrame {
     private JTextField commandField;
 
     private final String[] availableCommands = {
-            "Open Valve = OV", "Close Valve = CV", "Get Moisture = GM"
+            "Open Valve = OV", "Close Valve = CV", "Get Moisture = GM", "Get Light = GL"
     };
 
     public CommandScreen(JFrame previous) {

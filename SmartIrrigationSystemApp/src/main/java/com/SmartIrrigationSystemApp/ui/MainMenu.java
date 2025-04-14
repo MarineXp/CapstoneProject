@@ -26,7 +26,7 @@ public class MainMenu extends JFrame {
         // Buttons
         JButton monitorBtn = new JButton("Serial Monitor");
         JButton settingsBtn = new JButton("Settings");
-        JButton summaryBtn = new JButton("Moisture Summary");
+        JButton summaryBtn = new JButton("Sensor Summary");
         JButton commandBtn = new JButton("Commands");
 
         // Align buttons
@@ -46,7 +46,7 @@ public class MainMenu extends JFrame {
         });
 
         summaryBtn.addActionListener(e -> {
-            new MoistureSummaryScreen(this);
+            new SummaryScreen(this);
             setVisible(false);
         });
 
