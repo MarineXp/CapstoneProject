@@ -5,12 +5,15 @@ import com.SmartIrrigationSystemApp.styling.ThemeManager;
 import javax.swing.*;
 import java.awt.*;
 import java.io.OutputStream;
+import java.io.Serial;
 
 public class CommandScreen extends JFrame {
     private JTextField commandField;
 
     private final String[] availableCommands = {
-            "Open Valve = OV", "Close Valve = CV", "Get Moisture = GM", "Get Light = GL"
+            "Open Valve = OV", "Close Valve = CV", "Get Moisture From Sensor 1 = GM1", "Get Moisture From Sensor 2 = GM2",
+            "Get Light = GL", "Get Soil Temperature in °F = GT", "Force Folder Creation for Day = ForceFolder",
+            "Force Log of Sensors = ForceLog"
     };
 
     public CommandScreen(JFrame previous) {
@@ -96,12 +99,26 @@ public class CommandScreen extends JFrame {
         add(contentPanel, BorderLayout.CENTER);
         setLocationRelativeTo(null);
         setVisible(true);
+
+        if (SerialService.getInstance().isLeakDetected()) {
+            addLeakIndicator();
+        } else {
+            SerialService.getInstance().setOnLeakUIUpdate(this::addLeakIndicator);
+        }
     }
 
     private void sendCommand() {
         String raw = commandField.getText().trim();
         if (raw.isEmpty()) return;
-        sendRawCommand("COM:" + raw + "\n");
+        if (raw.equals("ForceFolder") || raw.equals("ForceLog")) {
+            if (raw.equals("ForceLog")) {
+                SerialService.getInstance().addLog();
+            } else if (raw.equals("ForceFolder")) {
+                SerialService.getInstance().createDayLogFile();
+            }
+        } else {
+            sendRawCommand("COM:" + raw + "\n");
+        }
     }
 
     private void sendRawCommand(String message) {
@@ -131,4 +148,22 @@ public class CommandScreen extends JFrame {
         setJMenuBar(menuBar);
     }
 
+    private void addLeakIndicator() {
+        SwingUtilities.invokeLater(() -> {
+            JLabel alertIcon = new JLabel("⚠ Leak Detected!");
+            alertIcon.setForeground(Color.RED);
+            alertIcon.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            alertIcon.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+            Timer blinkTimer = new Timer(500, null);
+            blinkTimer.addActionListener(e -> {
+                alertIcon.setVisible(!alertIcon.isVisible());
+            });
+            blinkTimer.start();
+
+            getContentPane().add(alertIcon, BorderLayout.SOUTH);
+            revalidate();
+            repaint();
+        });
+    }
 }

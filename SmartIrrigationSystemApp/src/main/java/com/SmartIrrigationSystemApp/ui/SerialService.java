@@ -2,9 +2,16 @@ package com.SmartIrrigationSystemApp.ui;
 
 import com.fazecast.jSerialComm.SerialPort;
 
+import javax.swing.*;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.function.Consumer;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.io.File;
+
 
 public class SerialService {
     private static SerialService instance;
@@ -17,10 +24,23 @@ public class SerialService {
     private Consumer<String> onMoistureUpdate1;
     private Consumer<String> onMoistureUpdate2;
     private Consumer<String> onLightUpdate;
+    private Consumer<String> onTemperatureUpdate;
 
     private String latestMoisture1 = "N/A";
     private String latestMoisture2 = "N/A";
     private String latestLight = "N/A";
+    private String latestTemperature = "N/A";
+    private boolean watering = false;
+    private boolean startedWatering = false;
+    private float wateringThreshold = 15f;
+    private float moisture1Override = 5f;
+    private float moisture2Override = 5f;
+
+    private boolean leakDetected = false;
+    private Runnable onLeakUIUpdate = null;
+
+    private File customLogFolder = null;
+    private float wateringTime = 10;
 
     private SerialService() {}
 
@@ -80,11 +100,76 @@ public class SerialService {
                                                         latestMoisture2 = moisture;
                                                         if (onMoistureUpdate2 != null) onMoistureUpdate2.accept(moisture);
                                                     } else if (line.contains("LIGHT:")) {
-                                                        String light = line.substring(line.indexOf("LIGHT:") + 7).trim();
+                                                        String light = line.substring(line.indexOf("LIGHT:") + 6).trim();
                                                         latestLight = light;
                                                         if (onLightUpdate != null) onLightUpdate.accept(light);
                                                     } else if (line.contains("LEAK")) {
-                                                        // Add logic to put up an error
+                                                        if (!leakDetected) { // Prevent spamming
+                                                            leakDetected = true;
+                                                            showLeakErrorPopup();
+                                                            logLeakToFile();
+                                                            if (onLeakUIUpdate != null) onLeakUIUpdate.run();
+                                                        }
+                                                    } else if (line.contains("TEMP:")) {
+                                                        String temperature = line.substring(line.indexOf("TEMP:") + 5).trim();
+                                                        latestTemperature = temperature;
+                                                        if (onTemperatureUpdate != null) onTemperatureUpdate.accept(temperature);
+                                                    }else if (line.contains("TIME")) {
+                                                        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                                                        String reply = String.format("TIME:%d,%02d,%02d,%02d,%02d,%02d\n",
+                                                                now.getYear(), now.getMonthValue(), now.getDayOfMonth(),
+                                                                now.getHour(), now.getMinute(), now.getSecond());
+                                                        try {
+                                                            OutputStream out = serialPort.getOutputStream();
+                                                            out.write(reply.getBytes());
+                                                            out.flush();
+                                                        } catch (Exception ex) {
+                                                            System.err.println("Failed to send time: " + ex.getMessage());
+                                                        }
+                                                        continue;
+                                                    } else if (line.contains("DayChange:")) {
+                                                        if (line.contains("1")) {
+                                                            createDayLogFile();
+                                                        }
+                                                    } else if (line.contains("LOG")) {
+                                                        if ((getMeanMoisture() < wateringThreshold && getMeanMoisture() != -1
+                                                                && !watering) || (Float.valueOf(getLatestMoisture(1)) < moisture1Override
+                                                                || Float.valueOf(getLatestMoisture(2)) < moisture2Override)) {
+                                                            try {
+                                                                OutputStream out = serialPort.getOutputStream();
+                                                                out.write("COM:OV\n".getBytes());
+                                                                out.flush();
+                                                                watering = true;
+                                                            } catch (IOException e) {
+                                                                System.err.println("Failed to send COM:OV: " + e.getMessage());
+                                                            }
+                                                        }
+
+                                                        addLog();
+
+                                                        if (watering && !startedWatering) {
+                                                            startedWatering = true;
+                                                            new Thread(() -> {
+                                                                try {
+                                                                    Thread.sleep((long) wateringTime * 60 * 1000); // 10 minutes in milliseconds
+
+                                                                    // Send COM:CV to close valve
+                                                                    try {
+                                                                        OutputStream out = serialPort.getOutputStream();
+                                                                        out.write("COM:CV\n".getBytes());
+                                                                        out.flush();
+                                                                        watering = false;
+                                                                        startedWatering = false;
+                                                                    } catch (IOException e) {
+                                                                        System.err.println("Failed to send COM:CV: " + e.getMessage());
+                                                                    }
+
+                                                                } catch (InterruptedException ignored) {}
+                                                            }).start();
+                                                        }
+
+                                                    } else {
+                                                        leakDetected = false;
                                                     }
                                                 }
 
@@ -133,6 +218,14 @@ public class SerialService {
         this.onLightUpdate = listener;
     }
 
+    public void setOnTemperatureUpdate(Consumer<String> listener) {
+        this.onTemperatureUpdate = listener;
+    }
+
+    public void setOnLeakUIUpdate(Runnable callback) {
+        this.onLeakUIUpdate = callback;
+    }
+
     public String getLatestMoisture(int sensor) {
         if (sensor == 1) {
             return latestMoisture1;
@@ -144,6 +237,10 @@ public class SerialService {
 
     public String getLatestLight() {
         return latestLight;
+    }
+
+    public String getLatestTemperature() {
+        return latestTemperature;
     }
 
     public String[] getAvailablePorts() {
@@ -168,6 +265,195 @@ public class SerialService {
             return meanMoisture;
         }
         return(-1);
+    }
+
+    private void showLeakErrorPopup() {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(null,
+                    "⚠ Leak detected!\nPlease check the irrigation system immediately.",
+                    "Leak Alert",
+                    JOptionPane.ERROR_MESSAGE);
+        });
+    }
+
+    private void logLeakToFile() {
+        try {
+            // Get user's home directory and build Documents path
+            String userHome = System.getProperty("user.home");
+            File logDir = getLogFolder();
+
+            // Create directory if it doesn't exist
+            if (!logDir.exists()) {
+                if (!logDir.mkdirs()) {
+                    System.err.println("Failed to create log directory: " + logDir.getAbsolutePath());
+                    return;
+                }
+            }
+
+            // Create or append to leak_log.txt
+            File logFile = new File(logDir, "leak_log.txt");
+            try (FileWriter writer = new FileWriter(logFile, true)) {
+                writer.write("Leak detected at " + LocalDateTime.now() + "\n");
+            }
+
+        } catch (IOException e) {
+            System.err.println("Failed to write to log file: " + e.getMessage());
+        }
+    }
+
+
+    public boolean isLeakDetected() {
+        return leakDetected;
+    }
+
+    public void createDayLogFile() {
+        // Build log folder path
+        String userHome = System.getProperty("user.home");
+        File logDir = getLogFolder();
+
+        // Create folder if it doesn't exist
+        if (!logDir.exists()) {
+            if (!logDir.mkdirs()) {
+                System.err.println("Failed to create log directory.");
+                return;
+            }
+        }
+
+        // Create file name with date format LOGGERyyyy-MM-dd.csv
+        String date = java.time.LocalDate.now().toString(); // e.g., 2025-04-10
+        File logFile = new File(logDir, "LOGGER" + date + ".csv");
+
+        // If file does not exist, write header line
+        if (!logFile.exists()) {
+            try (FileWriter writer = new FileWriter(logFile)) {
+                writer.write("time,date,Moisture Sensor 1 (%),Moisture Sensor 2 (%),Moisture Mean (%),Light Sensor (%),Soil Temperature (°F),Watering\n");
+            } catch (IOException e) {
+                System.err.println("Failed to create log file: " + e.getMessage());
+            }
+        }
+    }
+
+    public void tryAutoConnect() {
+        String autoPortName = "cu.usbmodem1101"; // macOS USB serial port
+        String[] availablePorts = getAvailablePorts();
+
+        for (String port : availablePorts) {
+            if (port.equals(autoPortName)) {
+                System.out.println("Attempting auto-connect to " + port);
+                setPort(autoPortName);
+
+                // Notify user of successful auto-connect
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(null,
+                            "Auto-connect to Arduino on '" + autoPortName + "' was successful!",
+                            "Connection Successful",
+                            JOptionPane.INFORMATION_MESSAGE);
+                });
+
+                scheduleInitialGM1Command();
+
+                return;
+            }
+        }
+
+        // If not found, notify user to use settings
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(null,
+                    "Could not automatically connect to Arduino on '" + autoPortName + "'.\nPlease go to Settings to select the correct COM port.",
+                    "Connection Failed",
+                    JOptionPane.WARNING_MESSAGE);
+        });
+    }
+
+    public void scheduleInitialGM1Command() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(5 * 1000); // Wait 30 seconds
+                if (serialPort != null && serialPort.isOpen()) {
+                    OutputStream out = serialPort.getOutputStream();
+                    out.write("COM:GM1\n".getBytes());
+                    out.flush();
+                    System.out.println("Sent COM:GM1 after auto-connect delay.");
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to send COM:GM1 after delay: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    public float getWateringThreshold() {
+        return wateringThreshold;
+    }
+
+    public float getMoisture1Override() {
+        return moisture1Override;
+    }
+
+    public float getMoisture2Override() {
+        return moisture2Override;
+    }
+
+    public void setWateringThreshold(float value) {
+        wateringThreshold = value;
+    }
+
+    public void setMoisture1Override(float value) {
+        moisture1Override = value;
+    }
+
+    public void setMoisture2Override(float value) {
+        moisture2Override = value;
+    }
+
+    public void addLog() {
+        String userHome = System.getProperty("user.home");
+        File logDir = getLogFolder();
+        String date = java.time.LocalDate.now().toString();
+        File logFile = new File(logDir, "LOGGER" + date + ".csv");
+
+        if (!logFile.exists()) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(null,
+                        "Log file not found for today (" + logFile.getName() + ").\nPlease trigger logging initialization first.",
+                        "Logging Error",
+                        JOptionPane.ERROR_MESSAGE);
+            });
+
+            // Just skip this specific line — DO NOT exit the whole thread
+            return; // skips to next serial line, keeps serial thread alive
+        }
+
+        String time = java.time.LocalTime.now().withNano(0).toString();
+        try (FileWriter writer = new FileWriter(logFile, true)) {
+            writer.write(String.format("%s,%s,%s,%s,%d,%s,%s,%b\n",
+                    time,
+                    date,
+                    getLatestMoisture(1),
+                    getLatestMoisture(2),
+                    getMeanMoisture(),
+                    getLatestLight(),
+                    getLatestTemperature(),  // make sure you have this field or getter
+                    watering));
+        } catch (IOException e) {
+            System.err.println("Failed to write to log file: " + e.getMessage());
+        }
+    }
+
+    public File getLogFolder() {
+        if (customLogFolder != null) return customLogFolder;
+        return new File(System.getProperty("user.home"), "Documents/IrrigationSystemLogs");
+    }
+
+    public void setCustomLogFolder(File folder) {
+        this.customLogFolder = folder;
+    }
+
+    public float getWateringTime() {
+        return wateringTime;
+    }
+
+    public void setWateringTime(float value) {
+        this.wateringTime = value;
     }
 }
 

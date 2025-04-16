@@ -13,6 +13,8 @@ public class MainMenu extends JFrame {
         addThemeMenu(); // Toggle menu
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        SerialService.getInstance().tryAutoConnect();
+
         // Use vertical box layout
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -28,12 +30,15 @@ public class MainMenu extends JFrame {
         JButton settingsBtn = new JButton("Settings");
         JButton summaryBtn = new JButton("Sensor Summary");
         JButton commandBtn = new JButton("Commands");
+        JButton graphBtn = new JButton("Graph Creator");
+
 
         // Align buttons
         monitorBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         settingsBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         summaryBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         commandBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        graphBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Add button actions
         monitorBtn.addActionListener(e -> {
@@ -55,6 +60,11 @@ public class MainMenu extends JFrame {
             setVisible(false);
         });
 
+        graphBtn.addActionListener(e -> {
+            new GraphCreatorScreen(this);
+            setVisible(false);
+        });
+
         // Add everything to main panel
         mainPanel.add(Box.createVerticalStrut(20));
         mainPanel.add(titleLabel);
@@ -66,11 +76,20 @@ public class MainMenu extends JFrame {
         mainPanel.add(summaryBtn);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(commandBtn);
+        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(graphBtn);
         mainPanel.add(Box.createVerticalGlue());
 
         add(mainPanel);
         setLocationRelativeTo(null);
         setVisible(true);
+
+        if (SerialService.getInstance().isLeakDetected()) {
+            addLeakIndicator();
+        } else {
+            SerialService.getInstance().setOnLeakUIUpdate(this::addLeakIndicator);
+        }
+
     }
 
     public static void main(String[] args) {
@@ -88,4 +107,22 @@ public class MainMenu extends JFrame {
         setJMenuBar(menuBar);
     }
 
+    private void addLeakIndicator() {
+        SwingUtilities.invokeLater(() -> {
+            JLabel alertIcon = new JLabel("⚠ Leak Detected!");
+            alertIcon.setForeground(Color.RED);
+            alertIcon.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            alertIcon.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+            Timer blinkTimer = new Timer(500, null);
+            blinkTimer.addActionListener(e -> {
+                alertIcon.setVisible(!alertIcon.isVisible());
+            });
+            blinkTimer.start();
+
+            getContentPane().add(alertIcon, BorderLayout.SOUTH);
+            revalidate();
+            repaint();
+        });
+    }
 }
