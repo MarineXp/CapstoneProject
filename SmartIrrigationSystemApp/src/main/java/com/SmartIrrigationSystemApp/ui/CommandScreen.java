@@ -12,7 +12,7 @@ public class CommandScreen extends JFrame {
 
     private final String[] availableCommands = {
             "Open Valve = OV", "Close Valve = CV", "Get Moisture From Sensor 1 = GM1", "Get Moisture From Sensor 2 = GM2",
-            "Get Light = GL", "Get Soil Temperature in °F = GT", "Force Folder Creation for Day = ForceFolder",
+            "Get Light = GL", "Get Soil Temperature in °F = GT", "Get all Sensor Values = GA","Force Folder Creation for Day = ForceFolder",
             "Force Log of Sensors = ForceLog"
     };
 
@@ -113,8 +113,10 @@ public class CommandScreen extends JFrame {
         if (raw.equals("ForceFolder") || raw.equals("ForceLog")) {
             if (raw.equals("ForceLog")) {
                 SerialService.getInstance().addLog();
+                JOptionPane.showMessageDialog(this, "Sent: ForceLog");
             } else if (raw.equals("ForceFolder")) {
                 SerialService.getInstance().createDayLogFile();
+                JOptionPane.showMessageDialog(this, "Sent: ForceFolder");
             }
         } else {
             sendRawCommand("COM:" + raw + "\n");
