@@ -9,7 +9,7 @@ import java.io.File;
 public class SettingsScreen extends JFrame {
     public SettingsScreen(JFrame previous) {
         setTitle("Settings");
-        setSize(350, 510);
+        setSize(350, 640);
         ThemeManager.applyTheme(this);
         addThemeMenu();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -29,16 +29,22 @@ public class SettingsScreen extends JFrame {
         JTextField moist1OverrideField = new JTextField(Float.toString(SerialService.getInstance().getMoisture1Override()));
         JTextField moist2OverrideField = new JTextField(Float.toString(SerialService.getInstance().getMoisture2Override()));
         JTextField wateringTimeField = new JTextField(Float.toString(SerialService.getInstance().getWateringTime()));
+        JTextField sundownWaterStopField = new JTextField(Float.toString(SerialService.getInstance().getSundownWaterStop()));
+        JTextField sunupWaterStartField = new JTextField(Float.toString(SerialService.getInstance().getSunupWaterStart()));
 
         wateringThresholdField.setMaximumSize(new Dimension(200, 25));
         moist1OverrideField.setMaximumSize(new Dimension(200, 25));
         moist2OverrideField.setMaximumSize(new Dimension(200, 25));
         wateringTimeField.setMaximumSize(new Dimension(200, 25));
+        sundownWaterStopField.setMaximumSize(new Dimension(200, 25));
+        sunupWaterStartField.setMaximumSize(new Dimension(200, 25));
 
         wateringThresholdField.setAlignmentX(Component.CENTER_ALIGNMENT);
         moist1OverrideField.setAlignmentX(Component.CENTER_ALIGNMENT);
         moist2OverrideField.setAlignmentX(Component.CENTER_ALIGNMENT);
         wateringTimeField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sundownWaterStopField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sunupWaterStartField.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel logPathLabel = new JLabel("Log Folder: " + SerialService.getInstance().getLogFolder().getAbsolutePath());
         logPathLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -70,11 +76,15 @@ public class SettingsScreen extends JFrame {
                 float override1 = Float.parseFloat(moist1OverrideField.getText().trim());
                 float override2 = Float.parseFloat(moist2OverrideField.getText().trim());
                 float waterTime = Float.parseFloat(wateringTimeField.getText().trim());
+                float sundownTime = Float.parseFloat(sundownWaterStopField.getText().trim());
+                float sunupTime = Float.parseFloat(sunupWaterStartField.getText().trim());
 
                 SerialService.getInstance().setWateringThreshold(threshold);
                 SerialService.getInstance().setMoisture1Override(override1);
                 SerialService.getInstance().setMoisture2Override(override2);
                 SerialService.getInstance().setWateringTime(waterTime);
+                SerialService.getInstance().setSundownWaterStop(sundownTime);
+                SerialService.getInstance().setSunupWaterStart(sunupTime);
 
                 JOptionPane.showMessageDialog(this, "Threshold values saved successfully.");
             } catch (NumberFormatException ex) {
@@ -122,8 +132,15 @@ public class SettingsScreen extends JFrame {
         add(Box.createVerticalStrut(10));
         add(createLabeledField("Moisture Sensor 2 Override (%):", moist2OverrideField));
         add(Box.createVerticalStrut(10));
+        JSeparator separator = new JSeparator();
+        separator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1)); // Make it stretch full width and thin
+        add(separator);
+        add(Box.createVerticalStrut(10));
         add(createLabeledField("Watering Time (Min):", wateringTimeField));
-
+        add(Box.createVerticalStrut(10));
+        add(createLabeledField("Sunset Water Stop Time (Hour of Day):", sundownWaterStopField));
+        add(Box.createVerticalStrut(10));
+        add(createLabeledField("Sunrise Water Start Time (Hour of Day):", sunupWaterStartField));
         add(Box.createVerticalStrut(10));
         add(saveValuesBtn);
         add(Box.createVerticalStrut(10));

@@ -11,10 +11,11 @@ public class SummaryScreen extends JFrame {
     private JLabel moistureMeanLabel;
     private JLabel lightLabel;
     private JLabel temperatureLabel;
+    private JLabel timeTillNextUpdateLabel;
 
     public SummaryScreen(JFrame previous) {
         setTitle("Summary");
-        setSize(400, 200);
+        setSize(400, 250);
         ThemeManager.applyTheme(this); // Apply current theme
         addThemeMenu(); // Toggle menu
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -72,6 +73,17 @@ public class SummaryScreen extends JFrame {
                         SwingUtilities.invokeLater(() -> temperatureLabel.setText("  Soil Temperature (°F) in Past 30 Min: " + val))
                 );
 
+        timeTillNextUpdateLabel = new JLabel("  Time Till Next Sensor Update (Min): 30", SwingConstants.CENTER);
+
+        // Immediately show the last known moisture reading
+        String TTNU = SerialService.getInstance().getTimeTillNextUpdate();
+        timeTillNextUpdateLabel.setText("  Time Till Next Sensor Update (Min): " + TTNU);
+
+        // Subscribe to real-time updates
+        SerialService.getInstance().setOnTimeTillNextUpdate(val ->
+                SwingUtilities.invokeLater(() -> timeTillNextUpdateLabel.setText("  Time Till Next Sensor Update (Min): " + val))
+        );
+
         JButton backBtn = new JButton("Back to Menu");
         backBtn.addActionListener(e -> {
             previous.setVisible(true);
@@ -84,6 +96,11 @@ public class SummaryScreen extends JFrame {
         add(moistureMeanLabel);
         add(lightLabel);
         add(temperatureLabel);
+        JSeparator separator = new JSeparator();
+        separator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1)); // Make it stretch full width and thin
+        add(separator);
+        add(Box.createVerticalStrut(10));
+        add(timeTillNextUpdateLabel);
         add(Box.createVerticalStrut(20));
         add(backBtn);
         add(Box.createVerticalGlue());

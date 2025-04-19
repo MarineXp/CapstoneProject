@@ -25,16 +25,20 @@ public class SerialService {
     private Consumer<String> onMoistureUpdate2;
     private Consumer<String> onLightUpdate;
     private Consumer<String> onTemperatureUpdate;
+    private Consumer<String> onTtnuUpdate;
 
     private String latestMoisture1 = "N/A";
     private String latestMoisture2 = "N/A";
     private String latestLight = "N/A";
     private String latestTemperature = "N/A";
+    private String timeTillNextUpdate = "30";
     private boolean watering = false;
     private boolean startedWatering = false;
     private float wateringThreshold = 15f;
     private float moisture1Override = 5f;
     private float moisture2Override = 5f;
+    private float sundownWaterStop = 20f;
+    private float sunupWaterStart = 8f;
 
     private boolean leakDetected = false;
     private Runnable onLeakUIUpdate = null;
@@ -94,11 +98,13 @@ public class SerialService {
                                                     if (line.contains("MOIST1:")) {
                                                         String moisture = line.substring(line.indexOf("MOIST1:") + 7).trim();
                                                         latestMoisture1 = moisture;
-                                                        if (onMoistureUpdate1 != null) onMoistureUpdate1.accept(moisture);
+                                                        if (onMoistureUpdate1 != null)
+                                                            onMoistureUpdate1.accept(moisture);
                                                     } else if (line.contains("MOIST2:")) {
                                                         String moisture = line.substring(line.indexOf("MOIST2:") + 7).trim();
                                                         latestMoisture2 = moisture;
-                                                        if (onMoistureUpdate2 != null) onMoistureUpdate2.accept(moisture);
+                                                        if (onMoistureUpdate2 != null)
+                                                            onMoistureUpdate2.accept(moisture);
                                                     } else if (line.contains("LIGHT:")) {
                                                         String light = line.substring(line.indexOf("LIGHT:") + 6).trim();
                                                         latestLight = light;
@@ -113,8 +119,9 @@ public class SerialService {
                                                     } else if (line.contains("TEMP:")) {
                                                         String temperature = line.substring(line.indexOf("TEMP:") + 5).trim();
                                                         latestTemperature = temperature;
-                                                        if (onTemperatureUpdate != null) onTemperatureUpdate.accept(temperature);
-                                                    }else if (line.contains("TIME")) {
+                                                        if (onTemperatureUpdate != null)
+                                                            onTemperatureUpdate.accept(temperature);
+                                                    } else if (line.contains("TIME")) {
                                                         java.time.LocalDateTime now = java.time.LocalDateTime.now();
                                                         String reply = String.format("TIME:%d,%02d,%02d,%02d,%02d,%02d\n",
                                                                 now.getYear(), now.getMonthValue(), now.getDayOfMonth(),
@@ -132,9 +139,15 @@ public class SerialService {
                                                             createDayLogFile();
                                                         }
                                                     } else if (line.contains("LOG")) {
-                                                        if ((getMeanMoisture() < wateringThreshold && getMeanMoisture() != -1
-                                                                && !watering) || (Float.valueOf(getLatestMoisture(1)) < moisture1Override
-                                                                || Float.valueOf(getLatestMoisture(2)) < moisture2Override)) {
+                                                        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                                                        int hour = now.getHour();
+                                                        boolean inAllowedTimeWindow = (sundownWaterStop > sunupWaterStart)
+                                                                ? hour >= sunupWaterStart && hour < sundownWaterStop
+                                                                : hour >= sunupWaterStart || hour < sundownWaterStop;
+                                                        if (((getMeanMoisture() < wateringThreshold && getMeanMoisture() != -1
+                                                                && !watering) || ((Float.valueOf(getLatestMoisture(1)) < moisture1Override
+                                                                || Float.valueOf(getLatestMoisture(2)) < moisture2Override)) && !watering)
+                                                                && inAllowedTimeWindow) {
                                                             try {
                                                                 OutputStream out = serialPort.getOutputStream();
                                                                 out.write("COM:OV\n".getBytes());
@@ -164,10 +177,16 @@ public class SerialService {
                                                                         System.err.println("Failed to send COM:CV: " + e.getMessage());
                                                                     }
 
-                                                                } catch (InterruptedException ignored) {}
+                                                                } catch (InterruptedException ignored) {
+                                                                }
                                                             }).start();
                                                         }
 
+                                                    } else if (line.contains("TTNU:")) {
+                                                        String TTNU = line.substring(line.indexOf("TTNU:") + 5).trim();
+                                                        timeTillNextUpdate = TTNU;
+                                                        if (onTtnuUpdate != null)
+                                                            onTtnuUpdate.accept(TTNU);
                                                     } else {
                                                         leakDetected = false;
                                                     }
@@ -226,6 +245,10 @@ public class SerialService {
         this.onLeakUIUpdate = callback;
     }
 
+    public void setOnTimeTillNextUpdate(Consumer<String> listener) {
+        this.onTtnuUpdate = listener;
+    }
+
     public String getLatestMoisture(int sensor) {
         if (sensor == 1) {
             return latestMoisture1;
@@ -241,6 +264,10 @@ public class SerialService {
 
     public String getLatestTemperature() {
         return latestTemperature;
+    }
+
+    public String getTimeTillNextUpdate() {
+        return timeTillNextUpdate;
     }
 
     public String[] getAvailablePorts() {
@@ -393,6 +420,14 @@ public class SerialService {
         return moisture2Override;
     }
 
+    public float getSundownWaterStop() {
+        return sundownWaterStop;
+    }
+
+    public float getSunupWaterStart() {
+        return sunupWaterStart;
+    }
+
     public void setWateringThreshold(float value) {
         wateringThreshold = value;
     }
@@ -403,6 +438,14 @@ public class SerialService {
 
     public void setMoisture2Override(float value) {
         moisture2Override = value;
+    }
+
+    public void setSunupWaterStart(float value) {
+        sunupWaterStart = value;
+    }
+
+    public void setSundownWaterStop(float value) {
+        sundownWaterStop = value;
     }
 
     public void addLog() {

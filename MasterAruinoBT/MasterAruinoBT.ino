@@ -38,7 +38,7 @@ void loop() {
         Serial.print("ACKM:Received:");
         Serial.println(inputBuffer);
       } else if (inputBuffer.equals("GA")) {
-        getAllData();
+        sensorCheck = 1;
         Serial.print("ACKM:Received:");
         Serial.println(inputBuffer);
       }
@@ -103,6 +103,15 @@ void loop() {
     sensorCheck = 3600;
     getAllData();
     beginLog = true;
+    int ttnu = sensorCheck / 120;
+    Serial.print("ACKM:TTNU:");
+    Serial.println(ttnu);
+    delay(100);
+  } else if (sensorCheck % 120 == 0) {
+    int ttnu = sensorCheck / 120;
+    Serial.print("ACKM:TTNU:");
+    Serial.println(ttnu);
+    delay(500);
   } else {
     delay(500);
   }
@@ -216,11 +225,11 @@ void parseTimeString(String timeString) {
 
 void getAllData() {
   BTSerial.println("ARCOM:GM1");
-  delay(125);
+  delay(100);
   BTSerial.println("ARCOM:GM2");
-  delay(125);
+  delay(100);
   BTSerial.println("ARCOM:GL");
-  delay(125);
+  delay(100);
   BTSerial.println("ARCOM:GT");
-  delay(125);
+  delay(100);
 }
