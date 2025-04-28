@@ -141,6 +141,11 @@ public class SerialService {
                                                     } else if (line.contains("LOG")) {
                                                         java.time.LocalDateTime now = java.time.LocalDateTime.now();
                                                         int hour = now.getHour();
+                                                        System.out.print("Watering: ");
+                                                        System.out.print(watering);
+                                                        System.out.print("\n");
+                                                        System.out.print("Started Watering: ");
+                                                        System.out.println(startedWatering);
                                                         boolean inAllowedTimeWindow = (sundownWaterStop > sunupWaterStart)
                                                                 ? hour >= sunupWaterStart && hour < sundownWaterStop
                                                                 : hour >= sunupWaterStart || hour < sundownWaterStop;

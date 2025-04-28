@@ -1,1 +1,0 @@
-jpackage --type msi --input . --main-jar SmartIrrigationSystemApp.jar --main-class com.SmartIrrigationSystemApp.ui.MainMenu --name SmartIrrigationSystem --icon icon.ico --java-options "-Xmx512m" --runtime-image runtime --win-menu --win-shortcut --resource-dir installer-resources --vendor "Robert Cunningham" --dest out --verbose
